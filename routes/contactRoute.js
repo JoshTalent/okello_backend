@@ -17,7 +17,7 @@ router.get("/msg", (req, res) => {
  * CREATE CONTACT MESSAGE
  * @route POST /api/contacts
  */
-router.post("/contacts", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const contact = new contactModel(req.body);
     await contact.save();
@@ -31,7 +31,7 @@ router.post("/contacts", async (req, res) => {
  * GET ALL CONTACTS (ADMIN ONLY)
  * @route GET /api/contacts
  */
-router.get("/contacts", authorizeAdmin, async (req, res) => {
+router.get("/", authorizeAdmin, async (req, res) => {
   try {
     const contacts = await contactModel.find();
     res.json({ success: true, data: contacts });
@@ -44,7 +44,7 @@ router.get("/contacts", authorizeAdmin, async (req, res) => {
  * DELETE CONTACT (ADMIN ONLY)
  * @route DELETE /api/contacts/:id
  */
-router.delete("/contacts/:id", authorizeAdmin, async (req, res) => {
+router.delete("/:id", authorizeAdmin, async (req, res) => {
   try {
     const contact = await contactModel.findByIdAndDelete(req.params.id);
     if (!contact) {

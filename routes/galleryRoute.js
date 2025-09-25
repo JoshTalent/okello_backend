@@ -10,7 +10,7 @@ dotenv.config();
  * CREATE GALLERY ITEM
  * @route POST /api/gallery
  */
-router.post("/gallery", authorizeAdmin, async (req, res) => {
+router.post("/", authorizeAdmin, async (req, res) => {
   try {
     const galleryItem = new galleryModel(req.body);
     await galleryItem.save();
@@ -24,7 +24,7 @@ router.post("/gallery", authorizeAdmin, async (req, res) => {
  * GET ALL GALLERY ITEMS
  * @route GET /api/gallery
  */
-router.get("/gallery", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const galleryItems = await galleryModel.find();
     res.json({ success: true, data: galleryItems });
@@ -37,7 +37,7 @@ router.get("/gallery", async (req, res) => {
  * GET SINGLE GALLERY ITEM
  * @route GET /api/gallery/:id
  */
-router.get("/gallery/:id", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const galleryItem = await galleryModel.findById(req.params.id);
     if (!galleryItem) {
@@ -53,7 +53,7 @@ router.get("/gallery/:id", async (req, res) => {
  * UPDATE GALLERY ITEM
  * @route PUT /api/gallery/:id
  */
-router.put("/gallery/:id", authorizeAdmin, async (req, res) => {
+router.put("/:id", authorizeAdmin, async (req, res) => {
   try {
     const galleryItem = await galleryModel.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -72,7 +72,7 @@ router.put("/gallery/:id", authorizeAdmin, async (req, res) => {
  * DELETE GALLERY ITEM
  * @route DELETE /api/gallery/:id
  */
-router.delete("/gallery/:id", authorizeAdmin, async (req, res) => {
+router.delete("/:id", authorizeAdmin, async (req, res) => {
   try {
     const galleryItem = await galleryModel.findByIdAndDelete(req.params.id);
     if (!galleryItem) {
