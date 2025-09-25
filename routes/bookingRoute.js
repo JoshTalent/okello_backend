@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
  * READ ALL BOOKINGS (ADMIN ONLY)
  * @route GET /api/bookings
  */
-router.get("/", authorizeAdmin, async (req, res) => {
+router.get("/",async (req, res) => {
   try {
     const bookings = await bookingModel.find();
     res.json({ success: true, data: bookings });
@@ -79,7 +79,7 @@ router.put("/:id", async (req, res) => {
  * DELETE BOOKING (ADMIN ONLY)
  * @route DELETE /api/bookings/:id
  */
-router.delete("/:id", authorizeAdmin, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const booking = await bookingModel.findByIdAndDelete(req.params.id);
     if (!booking) {
