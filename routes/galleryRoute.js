@@ -10,7 +10,7 @@ dotenv.config();
  * CREATE GALLERY ITEM
  * @route POST /api/gallery
  */
-router.post("/", authorizeAdmin, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const galleryItem = new galleryModel(req.body);
     await galleryItem.save();
