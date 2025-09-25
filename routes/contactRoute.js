@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
  * GET ALL CONTACTS (ADMIN ONLY)
  * @route GET /api/contacts
  */
-router.get("/", authorizeAdmin, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const contacts = await contactModel.find();
     res.json({ success: true, data: contacts });
@@ -44,7 +44,7 @@ router.get("/", authorizeAdmin, async (req, res) => {
  * DELETE CONTACT (ADMIN ONLY)
  * @route DELETE /api/contacts/:id
  */
-router.delete("/:id", authorizeAdmin, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const contact = await contactModel.findByIdAndDelete(req.params.id);
     if (!contact) {
