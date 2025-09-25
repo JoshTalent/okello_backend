@@ -53,7 +53,7 @@ router.get("/:id", async (req, res) => {
  * UPDATE GALLERY ITEM
  * @route PUT /api/gallery/:id
  */
-router.put("/:id", authorizeAdmin, async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
     const galleryItem = await galleryModel.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -72,7 +72,7 @@ router.put("/:id", authorizeAdmin, async (req, res) => {
  * DELETE GALLERY ITEM
  * @route DELETE /api/gallery/:id
  */
-router.delete("/:id", authorizeAdmin, async (req, res) => {
+router.delete("/:id",  async (req, res) => {
   try {
     const galleryItem = await galleryModel.findByIdAndDelete(req.params.id);
     if (!galleryItem) {
