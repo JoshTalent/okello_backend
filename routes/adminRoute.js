@@ -2,18 +2,21 @@ import express from "express";
 import adminModel from "../models/adminModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import authorizeAdmin from "../middlewares/authentication.js";
 import dotenv from "dotenv";
 
 const router = express.Router();
 dotenv.config();
 
-
+/**
+ * Test Route
+ */
 router.get("/msg", (req, res) => {
-  res.json({ message: "hell world" });
+  res.json({ message: "hello world" });
 });
- 
-// Admin registration
+
+/**
+ * REGISTER ADMIN (only one allowed)
+ */
 router.post("/register", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -22,28 +25,31 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const existingAdmin = await adminModel.findOne({ email });
+    const existingAdmin = await adminModel.findOne();
     if (existingAdmin) {
       return res
         .status(400)
-        .json({ message: "supposed to be only one admin" });
+        .json({ message: "Only one admin account is allowed" });
     }
 
-    const adminData = new adminModel({ email, password: hashedPassword });
-    const savedUser = await adminData.save();
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    return res
-      .status(201)
-      .json({ message: "Admin registered successfully", data: savedUser });
+    const adminData = new adminModel({ email, password: hashedPassword });
+    const savedAdmin = await adminData.save();
+
+    return res.status(201).json({
+      message: "Admin registered successfully",
+      data: { id: savedAdmin._id, email: savedAdmin.email },
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Register error:", error);
     return res.status(500).json({ error: error.message });
   }
 });
 
-// Admin login
+/**
+ * ADMIN LOGIN
+ */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -55,13 +61,12 @@ router.post("/login", async (req, res) => {
     const userExist = await adminModel.findOne({ email });
 
     if (!userExist) {
-      return res.status(400).json({ message: "user not found" });
+      return res.status(404).json({ message: "Admin not found" });
     }
 
-    const ismatch = await bcrypt.compare(password, userExist.password);
-
-    if (!ismatch) {
-      return res.status(401).json({ error: "The password is invalid" });
+    const isMatch = await bcrypt.compare(password, userExist.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid password" });
     }
 
     const token = jwt.sign({ id: userExist._id }, process.env.JWT_SECRET, {
@@ -70,57 +75,97 @@ router.post("/login", async (req, res) => {
 
     return res.status(200).json({
       message: "Logged in successfully",
-      user: userExist,
-      token: token,
+      user: { id: userExist._id, email: userExist.email },
+      token,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     return res.status(500).json({ error: error.message });
   }
 });
 
-// ✅ Get admin info (email only, never return hashed password)
-router.get("/profile",  async (req, res) => {
+/**
+ * GET ALL ADMINS (with search & sort)
+ * Example: /api/admins?search=example&sort=asc
+ */
+router.get("/", async (req, res) => {
   try {
-    const admin = await adminModel.findById(req.admin.id).select("email");
-    if (!admin) {
-      return res.status(404).json({ message: "Admin not found" });
+    const { search, sort } = req.query;
+
+    let query = {};
+    if (search) {
+      query.email = { $regex: search, $options: "i" }; // case-insensitive search
     }
-    return res.status(200).json({ admin });
+
+    let adminsQuery = adminModel.find(query).select("-password");
+
+    if (sort === "asc") {
+      adminsQuery = adminsQuery.sort({ email: 1 });
+    } else if (sort === "desc") {
+      adminsQuery = adminsQuery.sort({ email: -1 });
+    } else if (sort === "newest") {
+      adminsQuery = adminsQuery.sort({ createdAt: -1 });
+    }
+
+    const admins = await adminsQuery;
+
+    res.status(200).json({ success: true, count: admins.length, data: admins });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
+    console.error("Error fetching admins:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
-// ✅ Update admin email and/or password
-router.put("/profile",  async (req, res) => {
+/**
+ * UPDATE ADMIN (email & password)
+ */
+router.put("/:id", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const updateData = {};
 
-    if (email) {
-      updateData.email = email;
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
     }
 
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updateData.password = hashedPassword;
-    }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const updatedAdmin = await adminModel.findByIdAndUpdate(
-      req.admin.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select("email");
+      req.params.id,
+      { email, password: hashedPassword },
+      { new: true }
+    );
 
-    return res
-      .status(200)
-      .json({ message: "Admin updated successfully", admin: updatedAdmin });
+    if (!updatedAdmin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    res.status(200).json({
+      message: "Admin updated successfully",
+      admin: { id: updatedAdmin._id, email: updatedAdmin.email },
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message });
+    console.error("Error updating admin:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-export default router
+/**
+ * DELETE ADMIN
+ */
+router.delete("/:id", async (req, res) => {
+  try {
+    const deletedAdmin = await adminModel.findByIdAndDelete(req.params.id);
+    if (!deletedAdmin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    res.status(200).json({ message: "Admin deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting admin:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+export default router;
